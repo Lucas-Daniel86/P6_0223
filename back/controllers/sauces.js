@@ -36,13 +36,21 @@ exports.getOneSauces = (req, res, next) => {
 
 exports.modifySauces = (req, res, next) => {
     const saucesObject = req.file ? {
-        ...JSON.parse(req.body.sauces),
+        ...JSON.parse(req.body.sauce),
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
     } : { ...req.body };
-
     delete saucesObject._userId;
     Sauce.findOne({ _id: req.params.id })
         .then((sauce) => {
+            //Si on modifie le fichier 'image', récupérer le nom du fichier image sauce actuelle pour la suppréssion
+            //pour éviter d'avoir un fichier inutile dans le dossier 'images' ``
+            if (saucesObject) {
+                const filename = sauce.imageUrl.split("/images")[1];
+                //Suppression de l'image de la sauce car elle va être remplacée par la nouvelle image de sauce
+                fs.unlink(`images/${filename}`, (error) => {
+                    if (error) throw error;
+                })
+            }
             if (sauce.userId != req.auth.userId) {
                 res.status(401).json({ message: 'Not authorized' });
             } else {

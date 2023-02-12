@@ -1,3 +1,5 @@
+const dotenv = require('dotenv').config();
+
 const express = require('express');
 
 const app = express();
@@ -7,9 +9,15 @@ const path = require('path');
 const saucesRoutes = require('./routes/sauces');
 const userRoutes = require('./routes/user');
 
+const cors = require('cors');
+app.use(cors());
+
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', false);
-mongoose.connect('mongodb+srv://canterol:Despertar2023*@cluster0.8dvdry8.mongodb.net/?retryWrites=true&w=majority',
+const password = process.env.DB_PASSWORD;
+const username = process.env.DB_USER;
+const uri = `mongodb+srv://${username}:${password}@cluster0.8dvdry8.mongodb.net/?retryWrites=true&w=majority`
+mongoose.connect((uri),
     {
         useNewUrlParser: true,
         useUnifiedTopology: true

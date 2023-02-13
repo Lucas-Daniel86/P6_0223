@@ -1,13 +1,30 @@
+//Importation de bcrypt pour hasher le password 
 const bcrypt = require('bcrypt');
+
+//Importation de crypto-js pour chiffrer le mail
+//https://www.youtube.com/watch?v=YSzKHcNJ_Rs
+const cryptojs = require('crypto-js');
+
+//Importation de dotenv pour les variables d'environnement
+const dotenv = require('dotenv').config();
+
+//Importation de jsonwebtoken
 const jwt = require('jsonwebtoken');
 
-const User = require('../models/user');
+//Importation de models de la base de donnée User.js
+const User = require('../models/User');
 
 exports.signup = (req, res, next) => {
+
+    //Chiffrer l'email dans la base de donnée
+    const emailCryptoJS = cryptojs.HmacSHA256(req.body.email, `${process.env.CRYPTOJS_EMAIL}`).toString();
+
+    //Hasher le mot de passe, saler 10x l'algorithme d'hashage
     bcrypt.hash(req.body.password, 10)
         .then(hash => {
+            //Enregistrement sur mongoDB
             const user = new User({
-                email: req.body.email,
+                email: emailCryptoJS,
                 password: hash
             });
             user.save()
@@ -18,7 +35,11 @@ exports.signup = (req, res, next) => {
 };
 
 exports.login = (req, res, next) => {
-    User.findOne({ email: req.body.email })
+
+    //Chiffrer l'email dans la base de donnée s'il existe
+    const emailCryptoJS = cryptojs.HmacSHA256(req.body.email, `${process.env.CRYPTOJS_EMAIL}`).toString();
+
+    User.findOne({ email: emailCryptoJS })
         .then(user => {
             if (!user) {
                 return res.status(401).json({ error: 'Utilisateur non trouvé !' });
@@ -32,7 +53,7 @@ exports.login = (req, res, next) => {
                         userId: user._id,
                         token: jwt.sign(
                             { userId: user._id },
-                            'RANDOM_TOKEN_SECRET',
+                            `${process.env.JWT_KEY_TOKEN}`,
                             { expiresIn: '24h' }
                         )
                     });

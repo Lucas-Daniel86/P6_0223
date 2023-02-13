@@ -43,7 +43,7 @@ exports.modifySauces = (req, res, next) => {
     Sauce.findOne({ _id: req.params.id })
         .then((sauce) => {
             //Si on modifie le fichier 'image', récupérer le nom du fichier image sauce actuelle pour la suppréssion
-            //pour éviter d'avoir un fichier inutile dans le dossier 'images' ``
+            //pour éviter d'avoir un fichier inutile dans le dossier 'images'
             if (saucesObject) {
                 const filename = sauce.imageUrl.split("/images")[1];
                 //Suppression de l'image de la sauce car elle va être remplacée par la nouvelle image de sauce

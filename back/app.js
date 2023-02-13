@@ -4,19 +4,34 @@ const express = require('express');
 
 const app = express();
 
+//Importation middleware helmet
+const helmet = require('helmet');
+//Modifier les en-têtes de l'objet de réponse
+app.use(helmet({ crossOriginResourcePolicy: false, }));
+
+//Importation middleware morgan (logger http)
+const morgan = require('morgan')
+//Logger les requests et les responses
+app.use(morgan('dev'));
+
+//Importation middleware cors
+const cors = require('cors');
+//Permet à l'api et le client de communiquer
+app.use(cors());
+
 const path = require('path');
+
 
 const saucesRoutes = require('./routes/sauces');
 const userRoutes = require('./routes/user');
-
-const cors = require('cors');
-app.use(cors());
 
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', false);
 const password = process.env.DB_PASSWORD;
 const username = process.env.DB_USER;
-const uri = `mongodb+srv://${username}:${password}@cluster0.8dvdry8.mongodb.net/?retryWrites=true&w=majority`
+const cluster = process.env.DB_CLUSTER;
+
+const uri = `mongodb+srv://${username}:${password}@${cluster}.mongodb.net/?retryWrites=true&w=majority`
 mongoose.connect((uri),
     {
         useNewUrlParser: true,

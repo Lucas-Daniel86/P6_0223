@@ -1,24 +1,28 @@
-// in controllers/stuff.js
+//Importation du package 'fs' de node.js.
 const fs = require('fs');
 
+//Importation du model 'Sauce'.
 const Sauce = require('../models/Sauce');
 
+//Logique POST.
 exports.createSauces = (req, res, next) => {
     const saucesObject = JSON.parse(req.body.sauce);
     delete saucesObject._id;
-    delete saucesObject._userId;
     const sauce = new Sauce({
         ...saucesObject,
-        userId: req.auth.userId,
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
     });
 
+    //La méthode save() enregistre l'objet dans mongoDB.
     sauce.save()
         .then(() => { res.status(201).json({ message: 'Objet enregistré !' }) })
         .catch(error => { res.status(400).json({ error }) })
 };
 
+//Logique GET avec 'findOne'.
 exports.getOneSauces = (req, res, next) => {
+
+    //Pour accéder à l'id req.params.id.
     Sauce.findOne({
         _id: req.params.id
     }).then(
@@ -27,63 +31,63 @@ exports.getOneSauces = (req, res, next) => {
         }
     ).catch(
         (error) => {
-            res.status(404).json({
-                error: error
-            });
+            res.status(404).json({ error });
         }
     );
 };
 
+//Logique PUT.
 exports.modifySauces = (req, res, next) => {
+    //Si on modifie le fichier image, récupérer le nom du fichier image sauce actuelle pour la suppréssion,
+    //pour éviter d'avoir un fichier inutile dans le dossier images.
+    if (req.file) {
+        Sauce.findOne({ _id: req.params.id })
+            .then(sauce => {
+                const filename = sauce.imageUrl.split("/images")[1];
+
+                //Suppression de l'image de la sauce car elle va être remplacée par la nouvelle image de sauce.
+                fs.unlink(`images/${filename}`, (error) => {
+                    if (err) throw err;
+                })
+            })
+            .catch(error => res.status(400).json({ error }));
+    }
+
+    //L'objet qui va être envoyé dans la base de donnée.
     const saucesObject = req.file ? {
         ...JSON.parse(req.body.sauce),
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
     } : { ...req.body };
-    delete saucesObject._userId;
-    Sauce.findOne({ _id: req.params.id })
-        .then((sauce) => {
-            //Si on modifie le fichier 'image', récupérer le nom du fichier image sauce actuelle pour la suppréssion
-            //pour éviter d'avoir un fichier inutile dans le dossier 'images'
-            if (saucesObject) {
-                const filename = sauce.imageUrl.split("/images")[1];
-                //Suppression de l'image de la sauce car elle va être remplacée par la nouvelle image de sauce
-                fs.unlink(`images/${filename}`, (error) => {
-                    if (error) throw error;
-                })
-            }
-            if (sauce.userId != req.auth.userId) {
-                res.status(401).json({ message: 'Not authorized' });
-            } else {
-                Sauce.updateOne({ _id: req.params.id }, { ...saucesObject, _id: req.params.id })
-                    .then(() => res.status(200).json({ message: 'Objet modifié!' }))
-                    .catch(error => res.status(401).json({ error }));
-            }
-        })
-        .catch((error) => {
-            res.status(400).json({ error });
-        });
-};
 
+    //Update dans la base de donnée.
+    Sauce.updateOne({ _id: req.params.id }, { ...saucesObject, _id: req.params.id })
+        .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+        .catch((error) => res.status(404).json({ error }));
+}
+
+//Logique DELETE.
 exports.deleteSauces = (req, res, next) => {
     Sauce.findOne({ _id: req.params.id })
         .then(sauce => {
-            if (sauce.userId != req.auth.userId) {
-                res.status(401).json({ message: 'Not authorized' });
-            } else {
-                const filename = sauce.imageUrl.split('/images/')[1];
-                fs.unlink(`images/${filename}`, () => {
-                    Sauce.deleteOne({ _id: req.params.id })
-                        .then(() => { res.status(200).json({ message: 'Objet supprimé !' }) })
-                        .catch(error => res.status(401).json({ error }));
-                });
-            }
+            const filename = sauce.imageUrl.split('/images/')[1];
+
+            fs.unlink(`images/${filename}`, () => {
+
+                Sauce.deleteOne({ _id: req.params.id })
+                    .then(() => { res.status(200).json({ message: `l'Objet ${req.params.id} a été supprimé !` }) })
+                    .catch((error) => res.status(401).json({ error }));
+            });
+
         })
         .catch(error => {
             res.status(500).json({ error });
         });
 };
 
+//Logique GET avec find.
 exports.getAllSauces = (req, res, next) => {
+
+    //Méthode 'find' pour avoir la liste complète.
     Sauce.find().then(
         (sauces) => {
             res.status(200).json(sauces);

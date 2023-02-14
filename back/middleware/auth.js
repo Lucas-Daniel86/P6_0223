@@ -13,6 +13,7 @@ module.exports = (req, res, next) => {
 
         //Récupérer l'userId du TOKEN.
         const userId = decodedToken.userId;
+        req.auth = { userId };
 
         //Autorisation de la requête uniquement si l'userId existe
         //dans la requête et si ça correspond.

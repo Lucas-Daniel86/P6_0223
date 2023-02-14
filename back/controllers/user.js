@@ -1,9 +1,7 @@
 //Importation de bcrypt pour hasher le password.
 const bcrypt = require('bcrypt');
 
-//Importation de crypto-js pour chiffrer le mail.
 //https://www.youtube.com/watch?v=YSzKHcNJ_Rs
-const cryptojs = require('crypto-js');
 
 //Importation de dotenv pour les variables d'environnement.
 const dotenv = require('dotenv').config();
@@ -17,15 +15,12 @@ const User = require('../models/User');
 //Logique POST pour créer un nouvel utilisateur (signup).
 exports.signup = (req, res, next) => {
 
-    //Chiffrer l'email dans la base de donnée.
-    const emailCryptoJS = cryptojs.HmacSHA256(req.body.email, `${process.env.CRYPTOJS_EMAIL}`).toString();
-
     //Hasher le mot de passe, saler 10x l'algorithme d'hashage
     bcrypt.hash(req.body.password, 10)
         .then((hash) => {
             //Données à enregistrer sur mongoDB.
             const user = new User({
-                email: emailCryptoJS,
+                email: req.body.email,
                 password: hash,
             });
 
@@ -40,10 +35,7 @@ exports.signup = (req, res, next) => {
 //Logique POST (login) pour contrôler la validité de l'utilisateur
 exports.login = (req, res, next) => {
 
-    //Chiffrer l'email dans la base de donnée s'il existe
-    const emailCryptoJS = cryptojs.HmacSHA256(req.body.email, `${process.env.CRYPTOJS_EMAIL}`).toString();
-
-    User.findOne({ email: emailCryptoJS })
+    User.findOne({ email: req.body.email })
         .then((user) => {
             if (!user) {
                 return res.status(401).json({ error: 'Utilisateur non trouvé !' });

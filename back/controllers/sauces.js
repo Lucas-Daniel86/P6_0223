@@ -38,44 +38,55 @@ exports.getOneSauces = (req, res, next) => {
 
 //Logique PUT.
 exports.modifySauces = (req, res, next) => {
-    //Si on modifie le fichier image, récupérer le nom du fichier image sauce actuelle pour la suppréssion,
-    //pour éviter d'avoir un fichier inutile dans le dossier images.
+    //si on modifie le fichier image, récupérer le nom du fichier image sauce actuelle pour la suppréssion,
+    //pour éviter d'avoir un fichier inutile dans le dossier images :
     if (req.file) {
         Sauce.findOne({ _id: req.params.id })
             .then(sauce => {
-                const filename = sauce.imageUrl.split("/images")[1];
-
-                //Suppression de l'image de la sauce car elle va être remplacée par la nouvelle image de sauce.
-                fs.unlink(`images/${filename}`, (error) => {
-                    if (err) throw err;
-                })
+                if (sauce.userId !== req.auth.userId) {
+                    res.status(403).json({ error: 'Requête non authorisée' });
+                }
+                else {
+                    const filename = sauce.imageUrl.split("/images")[1];
+                    //suppression de l'image de la sauce car elle va être remplacer par la nouvelle image de sauce :
+                    fs.unlink(`images/${filename}`, (error) => {
+                        if (error) throw error;
+                    })
+                }
             })
             .catch(error => res.status(400).json({ error }));
     }
 
-    //L'objet qui va être envoyé dans la base de donnée.
-    const saucesObject = req.file ? {
-        ...JSON.parse(req.body.sauce),
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
-    } : { ...req.body };
+    //l'objet qui va être envoyé dans la base de donnée :
+    const sauceObject = req.file ?
+        {
+            ...JSON.parse(req.body.sauce),
+            imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        } : { ...req.body };
 
-    //Update dans la base de donnée.
-    Sauce.updateOne({ _id: req.params.id }, { ...saucesObject, _id: req.params.id })
-        .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+    //update dans la base de donnée :
+    Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
+        .then(() => res.status(200).json({ message: "objet mise à jour" }))
         .catch((error) => res.status(404).json({ error }));
 }
 
 //Logique DELETE.
 exports.deleteSauces = (req, res, next) => {
     Sauce.findOne({ _id: req.params.id })
-        .then(sauce => {
+        .then((sauce) => {
+            if (!sauce) {
+                res.status(404).json({ error: 'Sauce non existante' });
+            }
+            if (sauce.userId !== req.auth.userId) {
+                res.status(403).json({ error: 'Requête non authorisée' });
+            }
             const filename = sauce.imageUrl.split('/images/')[1];
 
             fs.unlink(`images/${filename}`, () => {
 
                 Sauce.deleteOne({ _id: req.params.id })
-                    .then(() => { res.status(200).json({ message: `l'Objet ${req.params.id} a été supprimé !` }) })
-                    .catch((error) => res.status(401).json({ error }));
+                    .then(() => res.status(200).json({ message: `l'Objet ${req.params.id} a été supprimé !` }))
+                    .catch((error) => res.status(404).json({ error }));
             });
 
         })

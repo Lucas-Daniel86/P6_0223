@@ -4,7 +4,7 @@ const passwordValidator = require('password-validator');
 //Création du schéma.
 const passwordSchema = new passwordValidator();
 
-//le schèma doit respecter le mot de passe.
+//Le schèma que doit respecter le mot de passe.
 passwordSchema
     .is().min(6)
     .is().max(100)

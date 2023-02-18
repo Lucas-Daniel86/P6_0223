@@ -1,5 +1,4 @@
 //multer: Pour gérer les requêtes HTTP avec envoie de fichier.
-//Importation du package multer.
 const multer = require('multer');
 
 //Dictionnaire de MIME_TYPES.
@@ -18,7 +17,6 @@ const storage = multer.diskStorage({
         callback(null, 'images');
     },
     filename: (req, file, callback) => {
-
         //Supprimer les espaces dans le nom du fichier.
         const name = file.originalname.split(' ').join('_');
         const extension = MIME_TYPES[file.mimetype];
